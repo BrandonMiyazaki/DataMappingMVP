@@ -1,0 +1,44 @@
+{
+  "status": "succeeded",
+  "result": {
+    "content": [
+      {
+        "type": "document",
+        "fields": {
+          "customerName": {
+            "valueString": "Contoso"
+          },
+          "reportingPeriod": {
+            "valueString": "2026-07"
+          },
+          "currency": {
+            "valueString": "USD"
+          },
+          "confidenceScore": {
+            "valueNumber": 0.91
+          },
+          "lineItems": {
+            "valueArray": [
+              {
+                "valueObject": {
+                  "name": {
+                    "valueString": "Product A"
+                  },
+                  "quantity": {
+                    "valueNumber": 10
+                  },
+                  "unitPrice": {
+                    "valueNumber": 15.5
+                  },
+                  "totalAmount": {
+                    "valueNumber": 155.0
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

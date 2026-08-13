@@ -31,6 +31,52 @@ def build_failed_record(source_file: str, error_message: str, payload: Optional[
     return json.dumps(failure, indent=2)
 
 
+def extract_canonical_payload_from_analyzer_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Transform a Content Understanding response into the normalized payload used by the CSV mapper."""
+    content = result.get("result", {}).get("content") or []
+    if not content:
+        raise ValueError("No content returned from Content Understanding analyzer")
+
+    document = content[0]
+    fields = document.get("fields") or {}
+
+    def get_field_value(field_name: str, default: Any = None) -> Any:
+        field = fields.get(field_name)
+        if field is None:
+            return default
+
+        if "valueString" in field:
+            return field["valueString"]
+        if "valueNumber" in field:
+            return field["valueNumber"]
+        if "valueArray" in field:
+            return field["valueArray"]
+        if "valueObject" in field:
+            return field["valueObject"]
+        return default
+
+    line_items = get_field_value("lineItems", [])
+    normalized_items = []
+    for item in line_items:
+        item_fields = item.get("valueObject") or {}
+        normalized_items.append(
+            {
+                "name": item_fields.get("name", {}).get("valueString"),
+                "quantity": item_fields.get("quantity", {}).get("valueNumber"),
+                "unitPrice": item_fields.get("unitPrice", {}).get("valueNumber"),
+                "totalAmount": item_fields.get("totalAmount", {}).get("valueNumber"),
+            }
+        )
+
+    return {
+        "customerName": get_field_value("customerName"),
+        "reportingPeriod": get_field_value("reportingPeriod"),
+        "currency": get_field_value("currency"),
+        "confidenceScore": get_field_value("confidenceScore"),
+        "lineItems": normalized_items,
+    }
+
+
 @app.function_name(name="excel_to_csv_blob_processor")
 @app.blob_trigger(arg_name="blob", path="raw/{name}.xlsx", connection="AzureWebJobsStorage")
 def process_excel_upload(blob: func.InputStream) -> None:
@@ -56,6 +102,7 @@ __all__ = [
     "app",
     "process_canonical_payload",
     "build_failed_record",
+    "extract_canonical_payload_from_analyzer_result",
     "process_excel_upload",
     "ValidationError",
 ]

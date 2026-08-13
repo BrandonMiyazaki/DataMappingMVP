@@ -1,6 +1,12 @@
+import json
 import unittest
+from pathlib import Path
 
-from function_app import build_failed_record, process_canonical_payload
+from function_app import (
+    build_failed_record,
+    extract_canonical_payload_from_analyzer_result,
+    process_canonical_payload,
+)
 
 
 class FunctionAppTests(unittest.TestCase):
@@ -35,6 +41,20 @@ class FunctionAppTests(unittest.TestCase):
         self.assertIn('"sourceFile": "sample.xlsx"', failure)
         self.assertIn('"status": "failed"', failure)
         self.assertIn('"error": "confidenceScore below threshold"', failure)
+
+    def test_extracts_canonical_payload_from_fixture(self):
+        fixture_path = Path(__file__).resolve().parent.parent / "fixtures" / "content_understanding_response.json"
+        with fixture_path.open("r", encoding="utf-8") as handle:
+            fixture = json.load(handle)
+
+        payload = extract_canonical_payload_from_analyzer_result(fixture)
+
+        self.assertEqual(payload["customerName"], "Contoso")
+        self.assertEqual(payload["reportingPeriod"], "2026-07")
+        self.assertEqual(payload["currency"], "USD")
+        self.assertEqual(payload["confidenceScore"], 0.91)
+        self.assertEqual(payload["lineItems"][0]["name"], "Product A")
+        self.assertEqual(payload["lineItems"][0]["quantity"], 10)
 
 
 if __name__ == "__main__":
