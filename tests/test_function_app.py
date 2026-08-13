@@ -5,6 +5,7 @@ from pathlib import Path
 from function_app import (
     build_failed_record,
     extract_canonical_payload_from_analyzer_result,
+    process_analyzer_result,
     process_canonical_payload,
 )
 
@@ -55,6 +56,16 @@ class FunctionAppTests(unittest.TestCase):
         self.assertEqual(payload["confidenceScore"], 0.91)
         self.assertEqual(payload["lineItems"][0]["name"], "Product A")
         self.assertEqual(payload["lineItems"][0]["quantity"], 10)
+
+    def test_process_analyzer_result_returns_csv_for_valid_fixture(self):
+        fixture_path = Path(__file__).resolve().parent.parent / "fixtures" / "content_understanding_response.json"
+        with fixture_path.open("r", encoding="utf-8") as handle:
+            fixture = json.load(handle)
+
+        csv_output = process_analyzer_result(fixture, source_file="sample.xlsx")
+
+        self.assertIn("sample.xlsx,Contoso,2026-07,Product A,10,15.50,155.00,USD,0.91", csv_output)
+        self.assertIn("SourceFile,CustomerName,ReportingPeriod", csv_output)
 
 
 if __name__ == "__main__":
