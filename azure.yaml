@@ -1,0 +1,11 @@
+name: data-mapping-mvp
+metadata:
+  template: data-mapping-mvp@0.0.1-beta
+services:
+  func:
+    project: .
+    language: python
+    host: function
+infra:
+  provider: bicep
+  path: infra

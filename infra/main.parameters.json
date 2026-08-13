@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "dev"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "storageAccountName": {
+      "value": "stdatamappingmvpdev001"
+    },
+    "functionAppName": {
+      "value": "func-data-mapping-dev-001"
+    },
+    "appInsightsName": {
+      "value": "appi-data-mapping-dev-001"
+    }
+  }
+}
