@@ -1,38 +1,67 @@
 {
   "status": "succeeded",
   "result": {
-    "content": [
+    "contents": [
       {
         "type": "document",
         "fields": {
-          "customerName": {
-            "valueString": "Contoso"
-          },
-          "reportingPeriod": {
-            "valueString": "2026-07"
-          },
-          "currency": {
-            "valueString": "USD"
-          },
-          "confidenceScore": {
-            "valueNumber": 0.91
-          },
-          "lineItems": {
+          "measurements": {
+            "type": "array",
             "valueArray": [
               {
                 "valueObject": {
-                  "name": {
-                    "valueString": "Product A"
-                  },
-                  "quantity": {
-                    "valueNumber": 10
-                  },
-                  "unitPrice": {
-                    "valueNumber": 15.5
-                  },
-                  "totalAmount": {
-                    "valueNumber": 155.0
-                  }
+                  "eventTimestamp": { "valueString": "2026-07-14 06:02:11" },
+                  "workOrder": { "valueString": "NS-84721" },
+                  "serialNumber": { "valueString": "AX10001" },
+                  "line": { "valueString": "Line 2" },
+                  "shift": { "valueString": "Day" },
+                  "stationId": { "valueString": "STN-01" },
+                  "testCategory": { "valueString": "Torque" },
+                  "measurementName": { "valueString": "Joint J1 torque" },
+                  "measurementValue": { "valueNumber": 18.42 },
+                  "measurementUnit": { "valueString": "N\u00b7m" },
+                  "lowerSpecLimit": { "valueNumber": 18 },
+                  "upperSpecLimit": { "valueNumber": 19 },
+                  "targetValue": { "valueNumber": 18.5 },
+                  "result": { "valueString": "PASS" },
+                  "attemptNumber": { "valueNumber": 1 },
+                  "sourceRecordText": { "valueString": "2026-07-14 06:02:11 WO=NS-84721 SN AX10001 joint:J1 torque=18.42Nm angle 44.8deg PASS" }
+                }
+              },
+              {
+                "valueObject": {
+                  "workOrder": { "valueString": "NS-84721" },
+                  "serialNumber": { "valueString": "AX10003" },
+                  "line": { "valueString": "Line 2" },
+                  "shift": { "valueString": "Day" },
+                  "stationId": { "valueString": "STN-01" },
+                  "testCategory": { "valueString": "Torque" },
+                  "measurementName": { "valueString": "Joint J1 torque" },
+                  "measurementValue": { "valueNumber": 17.91 },
+                  "measurementUnit": { "valueString": "N\u00b7m" },
+                  "lowerSpecLimit": { "valueNumber": 18 },
+                  "upperSpecLimit": { "valueNumber": 19 },
+                  "targetValue": { "valueNumber": 18.5 },
+                  "result": { "valueString": "FAIL" },
+                  "attemptNumber": { "valueNumber": 1 },
+                  "errorCode": { "valueString": "TORQUE_LOW" },
+                  "sourceRecordText": { "valueString": "[06:03:04] AX10003 J1 TQ 17.91Nm LOW; retry requested" }
+                }
+              },
+              {
+                "valueObject": {
+                  "eventTimestamp": { "valueString": "2026-07-14 06:25:19" },
+                  "workOrder": { "valueString": "NS-84721" },
+                  "serialNumber": { "valueString": "AX10004" },
+                  "line": { "valueString": "Line 2" },
+                  "shift": { "valueString": "Day" },
+                  "stationId": { "valueString": "V4" },
+                  "testCategory": { "valueString": "Vision" },
+                  "measurementName": { "valueString": "Barcode readability" },
+                  "result": { "valueString": "REVIEW" },
+                  "attemptNumber": { "valueNumber": 1 },
+                  "errorCode": { "valueString": "OCR_GLARE" },
+                  "sourceRecordText": { "valueString": "06:25:19 V4: AX10004 gasket present, barcode unreadable (glare) result=REVIEW" }
                 }
               }
             ]
@@ -42,3 +71,4 @@
     ]
   }
 }
+

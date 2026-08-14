@@ -13,7 +13,7 @@ from azure.storage.blob import BlobServiceClient, ContentSettings
 from src.data_mapping_mvp.csv_contract import (
     ValidationError,
     build_csv_content,
-    map_canonical_payload_to_csv,
+    map_measurements_payload_to_rows,
 )
 
 app = func.FunctionApp()
@@ -137,16 +137,16 @@ def _write_success_and_failure_outputs(source_file: str, csv_output: str, failur
         _write_blob_document(failed_container, failed_name, failure_json, "application/json")
 
 
-def process_canonical_payload(payload: Dict[str, Any], source_file: str) -> str:
-    """Convert a validated canonical payload into a single-row CSV payload."""
-    row = map_canonical_payload_to_csv(payload, source_file=source_file)
-    return build_csv_content([row])
+def process_canonical_payload(payload: Dict[str, Any]) -> str:
+    """Convert a validated canonical payload into standardized CSV rows."""
+    rows = map_measurements_payload_to_rows(payload)
+    return build_csv_content(rows)
 
 
-def process_analyzer_result(result: Dict[str, Any], source_file: str) -> str:
+def process_analyzer_result(result: Dict[str, Any]) -> str:
     """Turn a Content Understanding response into the final CSV output expected by the pipeline."""
     payload = extract_canonical_payload_from_analyzer_result(result)
-    return process_canonical_payload(payload, source_file=source_file)
+    return process_canonical_payload(payload)
 
 
 def build_failed_record(source_file: str, error_message: str, payload: Optional[Dict[str, Any]] = None) -> str:
@@ -161,50 +161,50 @@ def build_failed_record(source_file: str, error_message: str, payload: Optional[
     return json.dumps(failure, indent=2)
 
 
+def _content_understanding_field_value(field: Any) -> Any:
+    """Return the scalar/array/object value from a Content Understanding field object."""
+    if not isinstance(field, dict):
+        return None
+    for key in (
+        "valueString",
+        "valueNumber",
+        "valueInteger",
+        "valueBoolean",
+        "valueDate",
+        "valueTime",
+    ):
+        if key in field:
+            return field[key]
+    if "valueArray" in field:
+        return field["valueArray"]
+    if "valueObject" in field:
+        return field["valueObject"]
+    return field.get("value")
+
+
 def extract_canonical_payload_from_analyzer_result(result: Dict[str, Any]) -> Dict[str, Any]:
-    """Transform a Content Understanding response into the normalized payload used by the CSV mapper."""
-    content = result.get("result", {}).get("content") or []
-    if not content:
+    """Transform a Content Understanding response into the measurements payload used by the CSV mapper."""
+    analyze = result.get("result", {}) if isinstance(result, dict) else {}
+    contents = analyze.get("contents") or analyze.get("content") or []
+    if not contents:
         raise ValueError("No content returned from Content Understanding analyzer")
 
-    document = content[0]
+    document = contents[0] or {}
     fields = document.get("fields") or {}
+    raw_items = _content_understanding_field_value(fields.get("measurements")) or []
 
-    def get_field_value(field_name: str, default: Any = None) -> Any:
-        field = fields.get(field_name)
-        if field is None:
-            return default
+    measurements = []
+    for item in raw_items:
+        obj = item.get("valueObject") if isinstance(item, dict) else None
+        if not isinstance(obj, dict):
+            continue
+        measurement = {
+            key: _content_understanding_field_value(field_obj)
+            for key, field_obj in obj.items()
+        }
+        measurements.append(measurement)
 
-        if "valueString" in field:
-            return field["valueString"]
-        if "valueNumber" in field:
-            return field["valueNumber"]
-        if "valueArray" in field:
-            return field["valueArray"]
-        if "valueObject" in field:
-            return field["valueObject"]
-        return default
-
-    line_items = get_field_value("lineItems", [])
-    normalized_items = []
-    for item in line_items:
-        item_fields = item.get("valueObject") or {}
-        normalized_items.append(
-            {
-                "name": item_fields.get("name", {}).get("valueString"),
-                "quantity": item_fields.get("quantity", {}).get("valueNumber"),
-                "unitPrice": item_fields.get("unitPrice", {}).get("valueNumber"),
-                "totalAmount": item_fields.get("totalAmount", {}).get("valueNumber"),
-            }
-        )
-
-    return {
-        "customerName": get_field_value("customerName"),
-        "reportingPeriod": get_field_value("reportingPeriod"),
-        "currency": get_field_value("currency"),
-        "confidenceScore": get_field_value("confidenceScore"),
-        "lineItems": normalized_items,
-    }
+    return {"measurements": measurements}
 
 
 @app.function_name(name="excel_to_csv_blob_processor")
@@ -216,7 +216,7 @@ def process_excel_upload(blob: func.InputStream) -> None:
 
     try:
         analyzer_result = analyze_excel_blob(blob.read(), source_file)
-        csv_output = process_analyzer_result(analyzer_result, source_file=source_file)
+        csv_output = process_analyzer_result(analyzer_result)
         _write_success_and_failure_outputs(source_file, csv_output)
         logging.info("Processed upload to CSV: %s", source_file)
     except (ValueError, TypeError, ValidationError, RuntimeError, TimeoutError) as exc:

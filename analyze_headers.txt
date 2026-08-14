@@ -1,0 +1,14 @@
+HTTP/1.1 400 Bad Request
+Transfer-Encoding: chunked
+Content-Type: application/json
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-ms-request-id: 3b7694d0-f3fc-4567-98b7-3cb524784028
+request-id: 3b7694d0-f3fc-4567-98b7-3cb524784028
+x-content-type-options: nosniff
+x-ms-error-code: InvalidRequest
+api-supported-versions: 2025-11-01,2026-06-01-preview
+x-envoy-upstream-service-time: 82
+apim-request-id: 3b7694d0-f3fc-4567-98b7-3cb524784028
+x-ms-region: East US
+Date: Fri, 14 Aug 2026 20:47:51 GMT
+

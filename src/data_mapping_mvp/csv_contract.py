@@ -6,18 +6,81 @@ from typing import Any, Dict, List
 
 
 CSV_COLUMNS = [
-    "SourceFile",
-    "CustomerName",
-    "ReportingPeriod",
-    "LineItemName",
-    "Quantity",
-    "UnitPrice",
-    "TotalAmount",
-    "Currency",
-    "ConfidenceScore",
+    "Record_ID",
+    "Event_Timestamp",
+    "Work_Order",
+    "Serial_Number",
+    "Line",
+    "Shift",
+    "Station_ID",
+    "Test_Category",
+    "Measurement_Name",
+    "Measurement_Value",
+    "Measurement_Unit",
+    "Lower_Spec_Limit",
+    "Upper_Spec_Limit",
+    "Target_Value",
+    "Test_Duration_s",
+    "Result",
+    "Attempt_Number",
+    "Error_Code",
+    "Operator_ID",
+    "Fixture_ID",
+    "Recipe_ID",
+    "Ambient_Temp_C",
+    "Humidity_pct",
+    "Source_Record_Text",
+    "Notes",
 ]
 
-MIN_CONFIDENCE_SCORE = 0.75
+# Fields the analyzer must supply for a record to be usable. Record_ID is
+# assigned by the mapping layer, so it is not required from the source.
+REQUIRED_FIELDS = [
+    "serialNumber",
+    "testCategory",
+    "measurementName",
+    "result",
+    "sourceRecordText",
+]
+
+VALID_RESULTS = {"PASS", "FAIL", "REVIEW", "HOLD", "INFO"}
+
+# Canonical measurement key -> output CSV column (Record_ID/Result handled explicitly).
+_FIELD_TO_COLUMN = {
+    "eventTimestamp": "Event_Timestamp",
+    "workOrder": "Work_Order",
+    "serialNumber": "Serial_Number",
+    "line": "Line",
+    "shift": "Shift",
+    "stationId": "Station_ID",
+    "testCategory": "Test_Category",
+    "measurementName": "Measurement_Name",
+    "measurementValue": "Measurement_Value",
+    "measurementUnit": "Measurement_Unit",
+    "lowerSpecLimit": "Lower_Spec_Limit",
+    "upperSpecLimit": "Upper_Spec_Limit",
+    "targetValue": "Target_Value",
+    "testDurationSeconds": "Test_Duration_s",
+    "attemptNumber": "Attempt_Number",
+    "errorCode": "Error_Code",
+    "operatorId": "Operator_ID",
+    "fixtureId": "Fixture_ID",
+    "recipeId": "Recipe_ID",
+    "ambientTempC": "Ambient_Temp_C",
+    "humidityPct": "Humidity_pct",
+    "notes": "Notes",
+}
+
+# Canonical keys whose values are numeric measurements.
+_NUMERIC_FIELDS = {
+    "measurementValue",
+    "lowerSpecLimit",
+    "upperSpecLimit",
+    "targetValue",
+    "testDurationSeconds",
+    "ambientTempC",
+    "humidityPct",
+}
 
 
 class ValidationError(ValueError):
@@ -31,61 +94,76 @@ def _normalize_string(value: Any) -> str:
 
 
 def _normalize_number(value: Any) -> str:
-    if value is None:
+    if value is None or value == "":
         return ""
-    if isinstance(value, (int, float)):
-        return format(value, ".2f")
-    return str(value).strip()
+    if isinstance(value, bool):
+        raise ValidationError("numeric field cannot be a boolean")
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        return str(int(value)) if value.is_integer() else repr(value)
+    text = str(value).strip()
+    if text == "":
+        return ""
+    try:
+        number = float(text)
+    except ValueError as exc:
+        raise ValidationError(f"expected numeric value, got '{text}'") from exc
+    return str(int(number)) if number.is_integer() else repr(number)
 
 
-def map_canonical_payload_to_csv(payload: Dict[str, Any], source_file: str) -> Dict[str, str]:
-    customer_name = _normalize_string(payload.get("customerName"))
-    reporting_period = _normalize_string(payload.get("reportingPeriod"))
-    currency = _normalize_string(payload.get("currency"))
-    confidence_score = payload.get("confidenceScore")
+def _format_record_id(record_id: Any, index: int) -> str:
+    existing = _normalize_string(record_id)
+    if existing:
+        return existing
+    return f"REC-{index:04d}"
 
-    if not customer_name:
-        raise ValidationError("customerName is required")
-    if not reporting_period:
-        raise ValidationError("reportingPeriod is required")
-    if not currency:
-        raise ValidationError("currency is required")
 
-    if confidence_score is None:
-        raise ValidationError("confidenceScore is required")
-    if float(confidence_score) < MIN_CONFIDENCE_SCORE:
-        raise ValidationError("confidenceScore below threshold")
+def map_measurement_to_csv_row(measurement: Dict[str, Any], index: int) -> Dict[str, str]:
+    """Map one canonical measurement record to a standardized CSV row.
 
-    line_items = payload.get("lineItems") or []
-    if not isinstance(line_items, list) or not line_items:
-        raise ValidationError("lineItems must contain at least one item")
+    ``index`` is 1-based and assigns Record_ID when the source omits it.
+    """
+    if not isinstance(measurement, dict):
+        raise ValidationError("measurement must be an object")
 
-    first_line_item = line_items[0]
-    line_item_name = _normalize_string(first_line_item.get("name"))
-    quantity = _normalize_number(first_line_item.get("quantity"))
-    unit_price = _normalize_number(first_line_item.get("unitPrice"))
-    total_amount = _normalize_number(first_line_item.get("totalAmount"))
+    for field in REQUIRED_FIELDS:
+        if not _normalize_string(measurement.get(field)):
+            raise ValidationError(f"{field} is required")
 
-    if not line_item_name:
-        raise ValidationError("lineItems[0].name is required")
-    if not quantity:
-        raise ValidationError("lineItems[0].quantity is required")
-    if not unit_price:
-        raise ValidationError("lineItems[0].unitPrice is required")
-    if not total_amount:
-        raise ValidationError("lineItems[0].totalAmount is required")
+    result = _normalize_string(measurement.get("result")).upper()
+    if result not in VALID_RESULTS:
+        raise ValidationError(
+            f"result must be one of {sorted(VALID_RESULTS)}, got '{result}'"
+        )
 
-    return {
-        "SourceFile": _normalize_string(source_file),
-        "CustomerName": customer_name,
-        "ReportingPeriod": reporting_period,
-        "LineItemName": line_item_name,
-        "Quantity": str(int(float(quantity))) if quantity else "",
-        "UnitPrice": unit_price if len(unit_price.split(".")) == 2 else f"{unit_price}.00",
-        "TotalAmount": total_amount if len(total_amount.split(".")) == 2 else f"{total_amount}.00",
-        "Currency": currency,
-        "ConfidenceScore": str(confidence_score),
-    }
+    row = {column: "" for column in CSV_COLUMNS}
+    row["Record_ID"] = _format_record_id(measurement.get("recordId"), index)
+    row["Result"] = result
+
+    for field, column in _FIELD_TO_COLUMN.items():
+        value = measurement.get(field)
+        if field in _NUMERIC_FIELDS:
+            row[column] = _normalize_number(value)
+        else:
+            row[column] = _normalize_string(value)
+
+    return row
+
+
+def map_measurements_payload_to_rows(payload: Dict[str, Any]) -> List[Dict[str, str]]:
+    """Map a canonical payload with a ``measurements`` array to CSV rows."""
+    if not isinstance(payload, dict):
+        raise ValidationError("payload must be an object")
+
+    measurements = payload.get("measurements")
+    if not isinstance(measurements, list) or not measurements:
+        raise ValidationError("measurements must contain at least one record")
+
+    rows: List[Dict[str, str]] = []
+    for offset, measurement in enumerate(measurements, start=1):
+        rows.append(map_measurement_to_csv_row(measurement, offset))
+    return rows
 
 
 def build_csv_content(rows: List[Dict[str, str]]) -> str:

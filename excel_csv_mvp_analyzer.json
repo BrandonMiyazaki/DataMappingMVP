@@ -1,0 +1,148 @@
+{
+  "description": "Assembly-line test measurement normalizer: extracts normalized measurement records from unstructured Excel test dumps",
+  "baseAnalyzerId": "prebuilt-document",
+  "models": {
+    "completion": "prebuilt-analyzer-completion",
+    "embedding": "prebuilt-analyzer-embedding"
+  },
+  "config": {
+    "returnDetails": true,
+    "enableFormula": false,
+    "estimateFieldSourceAndConfidence": true,
+    "tableFormat": "html"
+  },
+  "fieldSchema": {
+    "fields": {
+      "measurements": {
+        "type": "array",
+        "method": "extract",
+        "description": "One entry per normalized test measurement found in the source. Split multi-measurement lines (e.g. a line reporting both torque and angle) into separate records.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "eventTimestamp": {
+              "type": "string",
+              "method": "extract",
+              "description": "Measurement time in ISO format (YYYY-MM-DD HH:MM:SS) when present in the source line; otherwise empty."
+            },
+            "workOrder": {
+              "type": "string",
+              "method": "extract",
+              "description": "Manufacturing work order or production order, e.g. NS-84721."
+            },
+            "serialNumber": {
+              "type": "string",
+              "method": "extract",
+              "description": "Serial number of the assembled unit, e.g. AX10001."
+            },
+            "line": {
+              "type": "string",
+              "method": "extract",
+              "description": "Production line identifier, e.g. Line 2."
+            },
+            "shift": {
+              "type": "string",
+              "method": "extract",
+              "description": "Production shift such as Day or Night."
+            },
+            "stationId": {
+              "type": "string",
+              "method": "extract",
+              "description": "Machine, bench, or inspection station identifier, e.g. STN-01, L-2, V4, FTB-07."
+            },
+            "testCategory": {
+              "type": "string",
+              "method": "extract",
+              "description": "High-level test family such as Torque, Press Fit, Leak, Vision, Functional, Electrical, Pack-Out, or Line Note."
+            },
+            "measurementName": {
+              "type": "string",
+              "method": "extract",
+              "description": "Normalized name of the measured characteristic, e.g. 'Joint J1 torque', 'Peak press force', 'Pressure drop'."
+            },
+            "measurementValue": {
+              "type": "number",
+              "method": "extract",
+              "description": "Numeric test result; leave empty for status-only records."
+            },
+            "measurementUnit": {
+              "type": "string",
+              "method": "extract",
+              "description": "Engineering unit for the measurement, e.g. N·m, kN, mm, kPa, deg, A, rpm, V, ohm, %, count."
+            },
+            "lowerSpecLimit": {
+              "type": "number",
+              "method": "extract",
+              "description": "Minimum acceptable value when defined in the source."
+            },
+            "upperSpecLimit": {
+              "type": "number",
+              "method": "extract",
+              "description": "Maximum acceptable value when defined in the source."
+            },
+            "targetValue": {
+              "type": "number",
+              "method": "extract",
+              "description": "Nominal or target value when known."
+            },
+            "testDurationSeconds": {
+              "type": "number",
+              "method": "extract",
+              "description": "Test duration in seconds when stated."
+            },
+            "result": {
+              "type": "string",
+              "method": "extract",
+              "description": "Normalized outcome, exactly one of: PASS, FAIL, REVIEW, HOLD, INFO. Map OK/GOOD/Y/accepted to PASS; map FAIL-LOW/FAIL-HIGH to FAIL."
+            },
+            "attemptNumber": {
+              "type": "number",
+              "method": "extract",
+              "description": "Test or retest sequence number; first attempt is 1, retry/rework is 2 or higher."
+            },
+            "errorCode": {
+              "type": "string",
+              "method": "extract",
+              "description": "Normalized failure or review code, e.g. TORQUE_LOW, LEAK_HIGH, LABEL_SKEW, OCR_GLARE."
+            },
+            "operatorId": {
+              "type": "string",
+              "method": "extract",
+              "description": "Operator or technician identifier from the source, e.g. K17."
+            },
+            "fixtureId": {
+              "type": "string",
+              "method": "extract",
+              "description": "Fixture, nest, or tooling identifier, e.g. 7A."
+            },
+            "recipeId": {
+              "type": "string",
+              "method": "extract",
+              "description": "Machine recipe or test program identifier, e.g. R19."
+            },
+            "ambientTempC": {
+              "type": "number",
+              "method": "extract",
+              "description": "Ambient temperature in degrees Celsius when reported."
+            },
+            "humidityPct": {
+              "type": "number",
+              "method": "extract",
+              "description": "Relative humidity on a 0-to-100 scale when reported."
+            },
+            "sourceRecordText": {
+              "type": "string",
+              "method": "extract",
+              "description": "The original unstructured source line this record was derived from, retained verbatim for traceability."
+            },
+            "notes": {
+              "type": "string",
+              "method": "generate",
+              "description": "Optional mapping assumptions, warnings, or supplemental context; empty when none."
+            }
+          }
+        }
+      }
+    }
+  }
+}

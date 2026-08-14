@@ -1,0 +1,14 @@
+HTTP/1.1 202 Accepted
+Transfer-Encoding: chunked
+Content-Type: application/json
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-ms-request-id: 9c76f49b-422d-496b-b677-6e53d99f74fa
+request-id: 9c76f49b-422d-496b-b677-6e53d99f74fa
+x-content-type-options: nosniff
+Operation-Location: https://cudatamappingmvp001.cognitiveservices.azure.com/contentunderstanding/analyzerResults/9c76f49b-422d-496b-b677-6e53d99f74fa?api-version=2025-11-01
+api-supported-versions: 2025-11-01,2026-06-01-preview
+x-envoy-upstream-service-time: 270
+apim-request-id: 9c76f49b-422d-496b-b677-6e53d99f74fa
+x-ms-region: East US
+Date: Fri, 14 Aug 2026 20:55:29 GMT
+

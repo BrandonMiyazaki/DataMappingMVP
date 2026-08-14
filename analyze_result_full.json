@@ -1,0 +1,46 @@
+﻿{
+    "id":  "9c76f49b-422d-496b-b677-6e53d99f74fa",
+    "status":  "Succeeded",
+    "result":  {
+                   "analyzerId":  "excelCsvMvpAnalyzer",
+                   "apiVersion":  "2025-11-01",
+                   "createdAt":  "2026-08-14T20:55:30Z",
+                   "stringEncoding":  "codePoint",
+                   "warnings":  [
+
+                                ],
+                   "contents":  [
+                                    {
+                                        "path":  "input1",
+                                        "markdown":  "# Raw Test Dump\n\n| Northstar Assembly Systems â Synthetic Line Test Output |\n| - |\n| SYNTHETIC SAMPLE ONLY \\| intentionally unstructured; formats, units, separators, and cell placement vary |\n\n| === CELL A / Torque Station 01 === |  |  |  |  |\n| - | - | - | - | - |\n| 2026-07-14 06:02:11 WO=NS-84721 SN AX10001 joint:J1 torque=18.42Nm angle 44.8deg PASS |  |  |  |  |\n| 06:02:18\\|AX10001\\|J2\\|18.36 N-m\\|45.1Â°\\|OK |  |  |  |  |\n| Part AX10002 / spindle 1 / target 18.5 / actual | 18.61 | Nm |  | angle=43.9; result=PASS |\n|  | SN: AX10002 |  | J2 actual 18.57Nm / 44.2 degrees / pass |  |\n| [06:03:04] AX10003 J1 TQ 17.91Nm LOW; retry requested |  |  |  |  |\n| retry#1 SN=AX10003 J1 18.33 Nm A=46.0 status:PASS operator K17 |  |  |  |  |\n| AX10003,J2,18.48,44.7,P |  |  |  |  |\n|  |  | UNIT AX10004 | J1=18.72 NÂ·m |  |\n| 20260714T060421 AX10004 screw2: torque eighteen point four? sensor_raw=18.39Nm; angle 44.9; PASS |  |  |  |  |\n| Station01 summary: 4 assemblies / 8 joints / 1 initial low / 0 final rejects |  |  |  |  |\n\n| ANGLE 43.5 |\n| - |\n\n| GOOD |\n| - |\n\n|  | PRESS-FIT STN 03 \u003e\u003e\u003e cycle output |  |\n| - | - | - |\n| 07/14/26 06:11:09 | AX10001 bearing-A |  |\n| cycle 221884 :: serial AX10002 :: Fmax=4,910 N :: travel 11.98 mm :: OK |  |  |\n| AX10003; press force 4.31kN; insertion depth 12.14; force window [4.5..5.2]; FAIL-LOW |  |  |\n|  | REWORK | AX10003 |\n| 06:12:48 Press#03 SN AX10004 Fpeak 5.08 KN depth 12.03mm result Y |  |  |\n| note: load cell zero drift +0.03kN after AX10004 |  |  |\n\n| peak 4.82 kN |\n| - |\n\n| depth=12.06mm |\n| - |\n\n| PASS |\n| - |\n\n| 4.67 | kN | 12.10 mm / accepted |\n| - | - | - |\n\n| LEAK TESTER L-2 / housing seal verification |  |  |\n| - | - | - |\n| SN AX10001 | Pstart 350 kPa | P@10s=349.2 |\n| 2026/07/14-06:18:01 L2 AX10002 drop=1.4 kPa over 10 sec (limit 1.5) PASS |  |  |\n| AX10003: 350.1 -\u003e 347.9 kPa; delta 2.2; LEAK FAIL |  |  |\n\n| drop .8kPa |\n| - |\n\n| pass |\n| - |\n\n|  |  |  | AX10003 retest after seal reset |  |\n| - | - | - | - | - |\n|  | start | 349.8 | end | 348.9 |\n| unit=AX10004\\|test=L2\\|duration_ms=10000\\|loss_pa=600\\|code=0 |  |  |  |  |\n| ambient 22.6 C humidity 46% fixture temp: 24C |  |  |  |  |\n\n| Î=.9 kPa OK |\n| - |\n\n| VISION INSPECTION (camera V4) |  |  |  |  |  |\n| - | - | - | - | - | - |\n| AX10001 IMG_77102 gasket present=yes label offset x:+0.21mm y:-0.08mm score .992 PASS |  |  |  |  |  |\n| SN=AX10002; gasket=1; OCR=\u0027NS-A10002\u0027; offset=(0.35,-0.10); confidence=98.7%; status OK |  |  |  |  |  |\n|  | AX10003 | label skew | 2.8 | deg |  |\n| manual adjust AX10003 / second image / skew=1.2Â° / conf .981 / accepted |  |  |  |  |  |\n| 06:25:19 V4: AX10004 gasket present, barcode unreadable (glare) result=REVIEW |  |  |  |  |  |\n|  |  |  |  | AX10004 reimage | OCR OK |\n\n| LIMIT 2.5 =\u003e FAIL |\n| - |\n\n| PASS |\n| - |\n\n| FUNCTIONAL TEST BENCH FTB-07 |\n| - |\n| START unit AX10001 at 06:31:04 fixture 7A recipe R19 |\n| motor no-load current = 1.84 A |\n\n| speed | 1487 | rpm |\n| - | - | - |\n\n| vibration 1.7 mm/s RMS |\n| - |\n\n| output voltage 23.96V; temp rise after 30s 4.1C; overall PASS |  |  |\n| - | - | - |\n| AX10002\\|I=1.91A\\|RPM=1492\\|Vout=24.02\\|vib=2.1mm/s\\|tempÎ=4.3\\|PASS |  |  |\n| AX10003 current 2.38 amps HIGH (max 2.20) speed 1411 rpm vibration 3.9 FAIL |  |  |\n|  | technician note | connector partially seated; reseated and repeated |\n| REPEAT AX10003 : amps=2.03 / rpm 1481 / volt 23.91 / vib 2.0 / PASS |  |  |\n| AX10004 test log missing motor temp value; I 1.88A speed=1490 vout 24.08V vib 1.8; code 0 |  |  |\n\n| FINAL ELECTRICAL / continuity + resistance |  |\n| - | - |\n| AX10001 pin1-pin3 0.184 ohm; insulation \u003e200 Mohm @500V; PASS |  |\n| serial AX10002 continuity=185mÎ© IR=214MÎ© dielectric=0.18mA result GOOD |  |\n|  | AX10003 |\n| * resistance close to upper control warning 0.210Î©, within spec 0.220Î© |  |\n| AX10004 test 06:40:33 R:0.176ohm IR:\u003e250Mohm hipot leakage .16mA P |  |\n\n| R=0.209Î© |\n| - |\n\n| IR 198 MÎ© |\n| - |\n\n| PASS* |\n| - |\n\n| PACK-OUT AUDIT / mixed manual entries |  |\n| - | - |\n| AX10001 wt=3.842 kg accessories 3/3 label ok box seal OK |  |\n| 7-14-26 AX10002 |  |\n| AX10003 3849g / manual bag present / QR scan good / released |  |\n| AX10004 weight 3.79kg ? lower than nominal; reweigh 3.795 kg; accessory count 2 of 3 HOLD |  |\n|  | missing accessory found under fixture; updated count=3; release approved AB |\n\n| mass | 3.8170000000000002 | kg |\n| - | - | - |\n\n| pack complete yes |\n| - |\n\n| SHIFT NOTES |\n| - |\n| Line 2 / Day shift / lot component supplier code S-44 / ambient 22-23C |\n| Downtime 06:44-06:51: barcode printer ribbon replacement |\n| Counters shown on HMI at handoff: produced 4, first-pass 1? operator says 3; rejected final 0 |\n| END EXPORT // source systems: torque PLC, press controller, leak tester, vision PC, manual pack-out |\n\n| Additional raw snippets (next batch) |  |  |\n| - | - | - |\n| AX10005 TQ J1 18.51 / J2 18.46; press 4.89kN; leak loss 0.7; vision ok |  |  |\n|  | SN AX10006 | torque 18.22 Nm |\n| AX10007; test results unavailable - network queue pending at 06:58 |  |  |\n\n| press=5.15 |\n| - |\n\n| leak:1.6 FAIL |\n| - |\n\n| AX10008 | T=18.63 | A=44.0 |\n| - | - | - |\n\n| OK |\n| - |\n",
+                                        "fields":  {
+                                                       "customerName":  {
+                                                                            "type":  "string"
+                                                                        },
+                                                       "reportingPeriod":  {
+                                                                               "type":  "string"
+                                                                           },
+                                                       "currency":  {
+                                                                        "type":  "string"
+                                                                    },
+                                                       "lineItems":  {
+                                                                         "type":  "array"
+                                                                     }
+                                                   },
+                                        "kind":  "document",
+                                        "startPageNumber":  1,
+                                        "endPageNumber":  1,
+                                        "analyzerId":  "excelCsvMvpAnalyzer",
+                                        "mimeType":  "application/zip"
+                                    }
+                                ]
+               },
+    "usage":  {
+                  "documentPagesMinimal":  2,
+                  "contextualizationTokens":  2000,
+                  "tokens":  {
+                                 "gpt-4o-input":  3904,
+                                 "gpt-4o-output":  45
+                             }
+              }
+}
