@@ -23,6 +23,13 @@ This wiki tracks the implementation progress for the Excel-to-CSV MVP solution.
 - Ready to advance to Azure Function and deployment scaffolding work.
 
 ## Pending Actions
-- Add Azure Function host skeleton and integration wiring.
-- Add analyzer contract fixtures and deployment scaffolding.
-- Create infrastructure-as-code and deployment workflow files.
+- Complete the live Azure AI Content Understanding configuration for analyzer registration.
+- Verify the analyzer creation endpoint and defaults against the live AI resource, and resolve the current 404 blocker.
+- Validate the end-to-end Excel upload path through the Azure Function and Blob workflow.
+- Create infrastructure-as-code and deployment workflow files if additional automation is needed.
+
+## Current Azure Status
+- Azure Function deployment is running successfully in the live resource group.
+- The AI account exists and returns the Content Understanding defaults payload.
+- Model deployments for the required embedding and completion models have been added successfully.
+- The remaining blocker is that the analyzer creation request keeps returning `404 Resource Not Found` even though the default route is live, indicating the resource needs the Content Understanding capability enabled or the service needs to be created as a Foundry-backed resource instead of only the standard AI Services account.

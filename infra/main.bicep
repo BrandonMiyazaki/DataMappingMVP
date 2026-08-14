@@ -13,16 +13,20 @@ param functionAppName string = 'func-data-mapping-${environmentName}-${uniqueStr
 @description('Application Insights name.')
 param appInsightsName string = 'appi-data-mapping-${environmentName}-${uniqueString(resourceGroup().id)}'
 
-var tags = {
+var commonTags = {
   environment: environmentName
   application: 'data-mapping-mvp'
   managedBy: 'bicep'
 }
 
+var functionAppTags = union(commonTags, {
+  'azd-service-name': 'func'
+})
+
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
   location: location
-  tags: tags
+  tags: commonTags
   sku: {
     name: 'Standard_LRS'
   }
@@ -39,7 +43,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
   kind: 'web'
-  tags: tags
+  tags: commonTags
   properties: {
     Application_Type: 'web'
     Flow_Type: 'Bluefield'
@@ -51,7 +55,7 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   name: '${functionAppName}-plan'
   location: location
   kind: 'functionapp'
-  tags: tags
+  tags: commonTags
   sku: {
     name: 'Y1'
     tier: 'Dynamic'
@@ -65,7 +69,7 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
   name: functionAppName
   location: location
   kind: 'functionapp,linux'
-  tags: tags
+  tags: functionAppTags
   identity: {
     type: 'SystemAssigned'
   }
