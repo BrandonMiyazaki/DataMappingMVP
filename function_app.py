@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
@@ -13,8 +13,9 @@ from azure.storage.blob import BlobServiceClient, ContentSettings
 from src.data_mapping_mvp.csv_contract import (
     ValidationError,
     build_csv_content,
-    map_measurements_payload_to_rows,
+    map_measurements_resilient,
 )
+from src.data_mapping_mvp.enrichment import enrich_measurements
 
 app = func.FunctionApp()
 
@@ -137,15 +138,30 @@ def _write_success_and_failure_outputs(source_file: str, csv_output: str, failur
         _write_blob_document(failed_container, failed_name, failure_json, "application/json")
 
 
-def process_canonical_payload(payload: Dict[str, Any]) -> str:
-    """Convert a validated canonical payload into standardized CSV rows."""
-    rows = map_measurements_payload_to_rows(payload)
-    return build_csv_content(rows)
+class PipelineOutput(NamedTuple):
+    """Result of processing one upload: the CSV of valid rows plus quarantined records."""
+
+    csv: str
+    quarantined: List[Dict[str, Any]]
 
 
-def process_analyzer_result(result: Dict[str, Any]) -> str:
-    """Turn a Content Understanding response into the final CSV output expected by the pipeline."""
+def process_canonical_payload(payload: Dict[str, Any]) -> PipelineOutput:
+    """Convert a canonical payload into CSV rows, quarantining invalid records."""
+    measurements = payload.get("measurements") if isinstance(payload, dict) else None
+    if not isinstance(measurements, list) or not measurements:
+        raise ValidationError("measurements must contain at least one record")
+    rows, quarantined = map_measurements_resilient(measurements)
+    return PipelineOutput(csv=build_csv_content(rows), quarantined=quarantined)
+
+
+def process_analyzer_result(result: Dict[str, Any]) -> PipelineOutput:
+    """Turn a Content Understanding response into the final CSV plus quarantined records."""
     payload = extract_canonical_payload_from_analyzer_result(result)
+    payload["measurements"] = enrich_measurements(
+        payload["measurements"],
+        default_line=_get_setting("DEFAULT_LINE", "Line 2"),
+        default_shift=_get_setting("DEFAULT_SHIFT", "Day"),
+    )
     return process_canonical_payload(payload)
 
 
@@ -159,6 +175,19 @@ def build_failed_record(source_file: str, error_message: str, payload: Optional[
     if payload is not None:
         failure["payload"] = payload
     return json.dumps(failure, indent=2)
+
+
+def build_quarantine_record(source_file: str, quarantined: List[Dict[str, Any]]) -> str:
+    """Create a partial-failure record listing measurements that failed validation."""
+    return json.dumps(
+        {
+            "sourceFile": source_file,
+            "status": "partial",
+            "quarantinedCount": len(quarantined),
+            "records": quarantined,
+        },
+        indent=2,
+    )
 
 
 def _content_understanding_field_value(field: Any) -> Any:
@@ -216,9 +245,18 @@ def process_excel_upload(blob: func.InputStream) -> None:
 
     try:
         analyzer_result = analyze_excel_blob(blob.read(), source_file)
-        csv_output = process_analyzer_result(analyzer_result)
-        _write_success_and_failure_outputs(source_file, csv_output)
-        logging.info("Processed upload to CSV: %s", source_file)
+        output = process_analyzer_result(analyzer_result)
+        quarantine_json = (
+            build_quarantine_record(source_file, output.quarantined)
+            if output.quarantined
+            else None
+        )
+        _write_success_and_failure_outputs(source_file, output.csv, quarantine_json)
+        logging.info(
+            "Processed upload %s: CSV written, %d record(s) quarantined",
+            source_file,
+            len(output.quarantined),
+        )
     except (ValueError, TypeError, ValidationError, RuntimeError, TimeoutError) as exc:
         failure_json = build_failed_record(source_file, str(exc))
         logging.error("Upload failed for %s: %s", source_file, exc)
@@ -233,9 +271,11 @@ def process_excel_upload(blob: func.InputStream) -> None:
 
 __all__ = [
     "app",
+    "PipelineOutput",
     "process_canonical_payload",
     "process_analyzer_result",
     "build_failed_record",
+    "build_quarantine_record",
     "extract_canonical_payload_from_analyzer_result",
     "process_excel_upload",
     "analyze_excel_blob",

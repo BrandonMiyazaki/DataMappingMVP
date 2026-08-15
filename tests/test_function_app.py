@@ -4,6 +4,7 @@ from pathlib import Path
 
 from function_app import (
     build_failed_record,
+    build_quarantine_record,
     extract_canonical_payload_from_analyzer_result,
     process_analyzer_result,
     process_canonical_payload,
@@ -37,15 +38,27 @@ def _measurements_payload():
 
 class FunctionAppTests(unittest.TestCase):
     def test_process_canonical_payload_returns_multi_column_csv(self):
-        csv_content = process_canonical_payload(_measurements_payload())
+        output = process_canonical_payload(_measurements_payload())
 
         self.assertIn(
             "Record_ID,Event_Timestamp,Work_Order,Serial_Number,Line,Shift,Station_ID,Test_Category,Measurement_Name,Measurement_Value",
-            csv_content,
+            output.csv,
         )
-        self.assertIn("REC-0001", csv_content)
-        self.assertIn("AX10001", csv_content)
-        self.assertIn("Joint J1 torque", csv_content)
+        self.assertIn("REC-0001", output.csv)
+        self.assertIn("AX10001", output.csv)
+        self.assertIn("Joint J1 torque", output.csv)
+        self.assertEqual(output.quarantined, [])
+
+    def test_process_canonical_payload_quarantines_invalid_records(self):
+        payload = _measurements_payload()
+        payload["measurements"].append({"testCategory": "Torque", "sourceRecordText": "orphan fragment"})
+
+        output = process_canonical_payload(payload)
+
+        self.assertIn("REC-0001", output.csv)
+        self.assertEqual(len(output.quarantined), 1)
+        self.assertEqual(output.quarantined[0]["sourceIndex"], 2)
+        self.assertIn("required", output.quarantined[0]["error"])
 
     def test_build_failed_record_contains_error_details(self):
         failure = build_failed_record(
@@ -57,6 +70,16 @@ class FunctionAppTests(unittest.TestCase):
         self.assertIn('"sourceFile": "sample.xlsx"', failure)
         self.assertIn('"status": "failed"', failure)
         self.assertIn('"error": "serialNumber is required"', failure)
+
+    def test_build_quarantine_record_lists_failed_records(self):
+        quarantine = build_quarantine_record(
+            "sample.xlsx",
+            [{"sourceIndex": 3, "error": "result is required", "measurement": {"serialNumber": "AX1"}}],
+        )
+
+        self.assertIn('"status": "partial"', quarantine)
+        self.assertIn('"quarantinedCount": 1', quarantine)
+        self.assertIn('"result is required"', quarantine)
 
     def test_extracts_measurements_from_fixture(self):
         fixture_path = Path(__file__).resolve().parent.parent / "fixtures" / "content_understanding_response.json"
@@ -77,14 +100,15 @@ class FunctionAppTests(unittest.TestCase):
         with fixture_path.open("r", encoding="utf-8") as handle:
             fixture = json.load(handle)
 
-        csv_output = process_analyzer_result(fixture)
-        data_lines = [line for line in csv_output.strip().splitlines()[1:] if line]
+        output = process_analyzer_result(fixture)
+        data_lines = [line for line in output.csv.strip().splitlines()[1:] if line]
 
         self.assertEqual(len(data_lines), 3)
-        self.assertIn("REC-0001", csv_output)
-        self.assertIn("REC-0003", csv_output)
-        self.assertIn("TORQUE_LOW", csv_output)
-        self.assertIn("OCR_GLARE", csv_output)
+        self.assertEqual(output.quarantined, [])
+        self.assertIn("REC-0001", output.csv)
+        self.assertIn("REC-0003", output.csv)
+        self.assertIn("TORQUE_LOW", output.csv)
+        self.assertIn("OCR_GLARE", output.csv)
 
 
 if __name__ == "__main__":

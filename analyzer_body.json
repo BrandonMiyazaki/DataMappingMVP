@@ -1,1 +1,0 @@
-{"error":{"code":"InvalidRequest","message":"Invalid request.","innererror":{"code":"DefaultDeploymentModelNotFound","message":"Defaults have not yet been set to 'gpt-4o'. Call 'PATCH /contentunderstanding/defaults' first."}}}

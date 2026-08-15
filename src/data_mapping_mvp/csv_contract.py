@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 
 CSV_COLUMNS = [
@@ -68,6 +68,7 @@ _FIELD_TO_COLUMN = {
     "recipeId": "Recipe_ID",
     "ambientTempC": "Ambient_Temp_C",
     "humidityPct": "Humidity_pct",
+    "sourceRecordText": "Source_Record_Text",
     "notes": "Notes",
 }
 
@@ -152,7 +153,10 @@ def map_measurement_to_csv_row(measurement: Dict[str, Any], index: int) -> Dict[
 
 
 def map_measurements_payload_to_rows(payload: Dict[str, Any]) -> List[Dict[str, str]]:
-    """Map a canonical payload with a ``measurements`` array to CSV rows."""
+    """Map a canonical payload with a ``measurements`` array to CSV rows.
+
+    Strict: raises ValidationError on the first invalid record.
+    """
     if not isinstance(payload, dict):
         raise ValidationError("payload must be an object")
 
@@ -164,6 +168,31 @@ def map_measurements_payload_to_rows(payload: Dict[str, Any]) -> List[Dict[str, 
     for offset, measurement in enumerate(measurements, start=1):
         rows.append(map_measurement_to_csv_row(measurement, offset))
     return rows
+
+
+def map_measurements_resilient(
+    measurements: List[Dict[str, Any]],
+) -> Tuple[List[Dict[str, str]], List[Dict[str, Any]]]:
+    """Map measurements one at a time, quarantining invalid records.
+
+    Returns ``(rows, quarantined)`` where ``rows`` are valid CSV rows with
+    sequential Record_IDs and ``quarantined`` is a list of
+    ``{"sourceIndex", "error", "measurement"}`` for records that failed validation.
+    """
+    rows: List[Dict[str, str]] = []
+    quarantined: List[Dict[str, Any]] = []
+    for source_index, measurement in enumerate(measurements, start=1):
+        try:
+            rows.append(map_measurement_to_csv_row(measurement, len(rows) + 1))
+        except ValidationError as exc:
+            quarantined.append(
+                {
+                    "sourceIndex": source_index,
+                    "error": str(exc),
+                    "measurement": measurement,
+                }
+            )
+    return rows, quarantined
 
 
 def build_csv_content(rows: List[Dict[str, str]]) -> str:

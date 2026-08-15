@@ -16,7 +16,7 @@
       "measurements": {
         "type": "array",
         "method": "extract",
-        "description": "One entry per normalized test measurement found in the source. Split multi-measurement lines (e.g. a line reporting both torque and angle) into separate records.",
+        "description": "Extract EVERY individual test measurement in the document as its own record, reading top to bottom across all stations (Torque, Press Fit, Leak, Vision, Functional, Electrical, Pack-Out) and including retries, reworks, and retests. RULES: (1) One record per distinct measured characteristic. When one source line reports multiple characteristics (for example torque AND angle, press force AND insertion depth, or motor speed AND vibration AND output voltage), emit a SEPARATE record for each characteristic, all sharing the same sourceRecordText. (2) ANTI-FRAGMENTATION: treat each physical source row as ONE logical event even when its values are spread across multiple adjacent cells or wrapped lines. Reconstruct a value that is split across cells (for example 'actual | 18.61 | Nm' or 'peak | 4.82 | kN') into a single complete measurement. Do NOT emit a record for a bare value, unit, or label fragment. (3) Every record MUST include a serialNumber and a result: carry the serial number and pass/fail outcome from the governing unit/line context when they are not repeated on the same cell. If a fragment genuinely has no associated serial number or outcome, do not emit it. (4) Copy the complete original source line verbatim into sourceRecordText. (5) Skip banner, title, section-divider, and station-summary lines that contain no measurement value.",
         "items": {
           "type": "object",
           "properties": {
@@ -93,7 +93,7 @@
             "result": {
               "type": "string",
               "method": "extract",
-              "description": "Normalized outcome, exactly one of: PASS, FAIL, REVIEW, HOLD, INFO. Map OK/GOOD/Y/accepted to PASS; map FAIL-LOW/FAIL-HIGH to FAIL."
+              "description": "Normalized outcome, exactly one of: PASS, FAIL, REVIEW, HOLD, INFO. Map OK/GOOD/Y/accepted/'release approved' to PASS; map FAIL-LOW/FAIL-HIGH/NG/reject to FAIL; keep REVIEW, HOLD, and INFO as-is."
             },
             "attemptNumber": {
               "type": "number",
@@ -133,7 +133,7 @@
             "sourceRecordText": {
               "type": "string",
               "method": "extract",
-              "description": "The original unstructured source line this record was derived from, retained verbatim for traceability."
+              "description": "REQUIRED. The complete original unstructured source line this record was derived from, copied verbatim (including timestamps, separators, and units) for traceability. Never leave this empty."
             },
             "notes": {
               "type": "string",
