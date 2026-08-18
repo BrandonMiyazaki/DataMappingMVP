@@ -1,6 +1,4 @@
-# About DataMappingMVP
-
-## What this project does
+DataMappWhat this project does
 DataMappingMVP is an Azure-based pipeline that turns **messy Excel test logs into clean, standardized CSV data**.
 
 The concrete scenario (from the sample data) is **assembly-line test-measurement normalization**: a factory exports an unstructured "raw test dump" spreadsheet where every line is written in a different format (varying units, separators, timestamps, and cell placement). The pipeline reads that file, uses AI to understand it, normalizes each measurement into a fixed 25-column schema, and writes the result as a CSV — quarantining any records it cannot confidently map.

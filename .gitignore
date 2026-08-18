@@ -13,6 +13,22 @@ local.settings.json
 # Test output
 .pytest_cache/
 
+# Local scratch / debug artifacts (manual Content Understanding testing + pipeline runs)
+_analyze_result.json
+_pipeline_output.csv
+analyze_body.json
+analyze_headers.txt
+analyze_result_full.json
+an_b.json
+an_h.txt
+
+# Deployment packages
+*.zip
+
+# Local project notes (not committed)
+wiki.md
+ExcelToCsvMvpPlan.md
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -7,6 +8,7 @@ from urllib import error as urllib_error
 from urllib import request as urllib_request
 
 import azure.functions as func
+from azure.core.exceptions import ResourceExistsError
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, ContentSettings
 
@@ -28,10 +30,14 @@ def _get_setting(name: str, default: Optional[str] = None) -> Optional[str]:
 
 
 def _get_blob_service_client() -> BlobServiceClient:
+    account_name = _get_setting("AzureWebJobsStorage__accountName") or _get_setting("STORAGE_ACCOUNT_NAME")
+    if account_name:
+        account_url = f"https://{account_name}.blob.{os.getenv('STORAGE_ENDPOINT_SUFFIX', 'core.windows.net')}"
+        return BlobServiceClient(account_url, credential=DefaultAzureCredential())
     connection_string = _get_setting("AzureWebJobsStorage")
-    if not connection_string:
-        raise RuntimeError("AzureWebJobsStorage is not configured")
-    return BlobServiceClient.from_connection_string(connection_string)
+    if connection_string:
+        return BlobServiceClient.from_connection_string(connection_string)
+    raise RuntimeError("Storage account is not configured (set AzureWebJobsStorage__accountName or AzureWebJobsStorage)")
 
 
 def _write_blob_document(container_name: str, blob_name: str, content: str, content_type: str) -> str:
@@ -42,7 +48,10 @@ def _write_blob_document(container_name: str, blob_name: str, content: str, cont
 
     blob_service = _get_blob_service_client()
     container_client = blob_service.get_container_client(container_name)
-    container_client.create_container(exist_ok=True)
+    try:
+        container_client.create_container()
+    except ResourceExistsError:
+        pass
 
     blob_client = container_client.get_blob_client(blob_name)
     blob_client.upload_blob(
@@ -78,7 +87,9 @@ def _build_content_understanding_url() -> str:
 
 def _poll_content_understanding_operation(operation_url: str, token: str) -> Dict[str, Any]:
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-    for _ in range(12):
+    attempts = int(_get_setting("CONTENT_UNDERSTANDING_POLL_ATTEMPTS", "90") or "90")
+    interval = float(_get_setting("CONTENT_UNDERSTANDING_POLL_INTERVAL_SECONDS", "2") or "2")
+    for _ in range(attempts):
         request = urllib_request.Request(operation_url, headers=headers, method="GET")
         try:
             with urllib_request.urlopen(request, timeout=30) as response:
@@ -87,13 +98,13 @@ def _poll_content_understanding_operation(operation_url: str, token: str) -> Dic
             body = exc.read().decode("utf-8", errors="replace")
             raise RuntimeError(f"Content Understanding polling failed: {exc.code} - {body}") from exc
 
-        status = payload.get("status")
+        status = str(payload.get("status", "")).lower()
         if status == "succeeded":
             return payload
         if status == "failed":
             raise RuntimeError(f"Content Understanding analysis failed: {payload}")
 
-        time.sleep(2)
+        time.sleep(interval)
 
     raise TimeoutError("Timed out waiting for Content Understanding analysis to complete")
 
@@ -104,12 +115,12 @@ def analyze_excel_blob(file_bytes: bytes, source_file: str) -> Dict[str, Any]:
     url = _build_content_understanding_url()
     headers = {
         "Authorization": f"Bearer {token}",
-        "Content-Type": "application/octet-stream",
-        "x-ms-file-name": source_file,
+        "Content-Type": "application/json",
         "Accept": "application/json",
     }
 
-    request = urllib_request.Request(url, data=file_bytes, headers=headers, method="POST")
+    body = json.dumps({"inputs": [{"data": base64.b64encode(file_bytes).decode("ascii")}]}).encode("utf-8")
+    request = urllib_request.Request(url, data=body, headers=headers, method="POST")
     try:
         with urllib_request.urlopen(request, timeout=60) as response:
             response_body = response.read().decode("utf-8", errors="replace")
@@ -237,7 +248,12 @@ def extract_canonical_payload_from_analyzer_result(result: Dict[str, Any]) -> Di
 
 
 @app.function_name(name="excel_to_csv_blob_processor")
-@app.blob_trigger(arg_name="blob", path="raw/{name}.xlsx", connection="AzureWebJobsStorage")
+@app.blob_trigger(
+    arg_name="blob",
+    path="raw/{name}.xlsx",
+    connection="AzureWebJobsStorage",
+    source=func.BlobSource.EVENT_GRID,
+)
 def process_excel_upload(blob: func.InputStream) -> None:
     """Azure Function trigger that processes a raw Excel upload into a CSV or failure record."""
     source_file = blob.name.split("/")[-1] if blob.name else "unknown.xlsx"

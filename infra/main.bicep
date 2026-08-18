@@ -36,6 +36,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     allowBlobPublicAccess: false
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    publicNetworkAccess: 'Disabled'
   }
 }
 
@@ -51,21 +52,28 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource hostingPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
+resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: '${functionAppName}-plan'
   location: location
   kind: 'functionapp'
   tags: commonTags
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
+    name: 'FC1'
+    tier: 'FlexConsumption'
   }
   properties: {
     reserved: true
   }
 }
 
-resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
+resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  name: '${storageAccount.name}/default/app-package'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: functionAppName
   location: location
   kind: 'functionapp,linux'
@@ -76,29 +84,35 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
   properties: {
     serverFarmId: hostingPlan.id
     httpsOnly: true
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${storageAccount.properties.primaryEndpoints.blob}app-package'
+          authentication: {
+            type: 'SystemAssignedIdentity'
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: 100
+        instanceMemoryMB: 2048
+      }
+      runtime: {
+        name: 'python'
+        version: '3.12'
+      }
+    }
     siteConfig: {
-      linuxFxVersion: 'Python|3.12'
       minTlsVersion: '1.2'
       appSettings: [
         {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccount.name
         }
         {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'python'
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${listKeys(storageAccount.id, storageAccount.apiVersion).keys[0].value}'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
-          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
-          value: appInsights.properties.InstrumentationKey
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -107,6 +121,9 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
       ]
     }
   }
+  dependsOn: [
+    deploymentContainer
+  ]
 }
 
 resource rawContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
