@@ -8,7 +8,9 @@ venv/
 
 # Azure Functions
 local.settings.json
-.azure/!*.md
+
+# azd local environment state (each user generates their own via `azd init`)
+.azure/
 
 # Test output
 .pytest_cache/

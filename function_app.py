@@ -141,7 +141,8 @@ def _write_success_and_failure_outputs(source_file: str, csv_output: str, failur
     processed_container = _get_setting("PROCESSED_CONTAINER", "processed")
     failed_container = _get_setting("FAILED_CONTAINER", "failed")
 
-    processed_name = source_file.rsplit(".", 1)[0] + ".csv" if "." in source_file else f"{source_file}.csv"
+    stem = source_file.rsplit(".", 1)[0] if "." in source_file else source_file
+    processed_name = f"{stem}_processed.csv"
     _write_blob_document(processed_container, processed_name, csv_output, "text/csv")
 
     if failure_json is not None:
