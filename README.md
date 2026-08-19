@@ -8,7 +8,7 @@ For step-by-step local testing and Azure deployment instructions, refer to [inst
 
 ## Overview
 
-Organizations frequently work with unstructured spreadsheets in which each row follows a different format, with inconsistent units, separators, timestamps, and cell placement. This pipeline ingests such a file, applies AI-based extraction to interpret it, normalizes each record into a fixed column schema, and writes the result as a CSV. Records that cannot be confidently mapped are quarantined for review.
+This project shows how to convert unstructured spreadsheets in which each row follows a different format, with inconsistent units, separators, timestamps, and cell placement into a fixed column schema, and write the result as a CSV. Records that cannot be confidently mapped are quarantined for review.
 
 - **Input:** an `.xlsx` file uploaded to Blob Storage (`raw/` container).
 - **Output:** a normalized `<name>_processed.csv` file in the `processed/` container.
